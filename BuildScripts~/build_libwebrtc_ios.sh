@@ -7,7 +7,7 @@ fi
 
 export COMMAND_DIR=$(cd $(dirname $0); pwd)
 export PATH="$(pwd)/depot_tools:$PATH"
-export WEBRTC_VERSION=4515
+export WEBRTC_VERSION=4664
 export OUTPUT_DIR="$(pwd)/out"
 export ARTIFACTS_DIR="$(pwd)/artifacts"
 
@@ -27,6 +27,12 @@ patch -N "src/BUILD.gn" < "$COMMAND_DIR/patches/add_jsoncpp.patch"
 
 # add objc library to use videotoolbox
 patch -N "src/sdk/BUILD.gn" < "$COMMAND_DIR/patches/add_objc_deps.patch"
+
+# embed bitcode
+# https://source.chromium.org/chromium/chromium/src/+/e93b60e2bf9bcbf45a5eebccb062da15c5a26bfd
+pushd src/build
+patch -p1 < "$COMMAND_DIR/patches/embed_bitcode.patch"
+popd
 
 # use included python
 export PATH="$(pwd)/depot_tools/bootstrap-3.8.0.chromium.8_bin/python/bin:$PATH"

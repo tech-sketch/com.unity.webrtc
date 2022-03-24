@@ -23,7 +23,7 @@ platforms:
     build_command: BuildScripts~/build_libwebrtc_android.sh
   - name: ios
     type: Unity::VM::osx
-    image: package-ci/mac:latest
+    image: renderstreaming/macos-12-xcode:latest
     flavor: m1.mac  
     build_command: BuildScripts~/build_libwebrtc_ios.sh
 projects:

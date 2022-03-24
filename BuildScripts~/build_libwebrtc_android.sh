@@ -7,7 +7,7 @@ fi
 
 export COMMAND_DIR=$(cd $(dirname $0); pwd)
 export PATH="$(pwd)/depot_tools:$PATH"
-export WEBRTC_VERSION=4515
+export WEBRTC_VERSION=4664
 export OUTPUT_DIR="$(pwd)/out"
 export ARTIFACTS_DIR="$(pwd)/artifacts"
 
@@ -62,7 +62,7 @@ pushd src
 
 for is_debug in "true" "false"
 do
-  python tools_webrtc/android/build_aar.py \
+  python3 tools_webrtc/android/build_aar.py \
     --build-dir $OUTPUT_DIR \
     --output $OUTPUT_DIR/libwebrtc.aar \
     --arch arm64-v8a \
@@ -88,7 +88,7 @@ popd
 patch -N "./src/tools_webrtc/libs/generate_licenses.py" < \
   "$COMMAND_DIR/patches/generate_licenses.patch"
 
-python "./src/tools_webrtc/libs/generate_licenses.py" \
+python3 "./src/tools_webrtc/libs/generate_licenses.py" \
   --target //:default "$OUTPUT_DIR" "$OUTPUT_DIR"
 
 cd src
