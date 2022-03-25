@@ -6,7 +6,7 @@ namespace unity
 namespace webrtc
 {
 
-    class MediaStreamObserver : public webrtc::MediaStreamObserver // M96: Removed, public sigslot::has_slots<>
+    class MediaStreamObserver : public webrtc::MediaStreamObserver, public sigslot::has_slots<>
     {
     public:
         explicit MediaStreamObserver(webrtc::MediaStreamInterface* stream, Context* context);
