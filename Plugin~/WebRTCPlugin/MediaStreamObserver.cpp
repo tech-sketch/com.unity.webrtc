@@ -7,13 +7,19 @@ namespace webrtc
 {
 
     MediaStreamObserver::MediaStreamObserver(webrtc::MediaStreamInterface* stream, Context* context)
-        : webrtc::MediaStreamObserver(stream)
+        : webrtc::MediaStreamObserver(
+            stream,
+            [this](webrtc::AudioTrackInterface* track, webrtc::MediaStreamInterface* stream) { this->OnAudioTrackAdded(track, stream); },
+            [this](webrtc::AudioTrackInterface* track, webrtc::MediaStreamInterface* stream) { this->OnAudioTrackRemoved(track, stream); },
+            [this](webrtc::VideoTrackInterface* track, webrtc::MediaStreamInterface* stream) { this->OnVideoTrackAdded(track, stream); },
+            [this](webrtc::VideoTrackInterface* track, webrtc::MediaStreamInterface* stream) { this->OnVideoTrackRemoved(track, stream); })
         , m_context(context)
     {
-        this->SignalVideoTrackAdded.connect(this, &MediaStreamObserver::OnVideoTrackAdded);
-        this->SignalAudioTrackAdded.connect(this, &MediaStreamObserver::OnAudioTrackAdded);
-        this->SignalVideoTrackRemoved.connect(this, &MediaStreamObserver::OnVideoTrackRemoved);
-        this->SignalAudioTrackRemoved.connect(this, &MediaStreamObserver::OnAudioTrackRemoved);
+        // In M96, These callbacks should now be part of the MediaStreamObserver constructor.
+        //this->SignalVideoTrackAdded.connect(this, &MediaStreamObserver::OnVideoTrackAdded);
+        //this->SignalAudioTrackAdded.connect(this, &MediaStreamObserver::OnAudioTrackAdded);
+        //this->SignalVideoTrackRemoved.connect(this, &MediaStreamObserver::OnVideoTrackRemoved);
+        //this->SignalAudioTrackRemoved.connect(this, &MediaStreamObserver::OnAudioTrackRemoved);
     }
 
     void MediaStreamObserver::OnVideoTrackAdded(webrtc::VideoTrackInterface* track, webrtc::MediaStreamInterface* stream)
