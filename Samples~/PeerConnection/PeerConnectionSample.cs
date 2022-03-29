@@ -37,6 +37,7 @@ class PeerConnectionSample : MonoBehaviour
 
     private RTCPeerConnection _pc1, _pc2;
     private List<RTCRtpSender> pc1Senders;
+    private List<RTCRtpReceiver> pc2Receivers;
     private MediaStream videoStream, receiveStream;
     private DelegateOnIceConnectionChange pc1OnIceConnectionChange;
     private DelegateOnIceConnectionChange pc2OnIceConnectionChange;
@@ -77,6 +78,7 @@ class PeerConnectionSample : MonoBehaviour
     private void Start()
     {
         pc1Senders = new List<RTCRtpSender>();
+        pc2Receivers = new List<RTCRtpReceiver>();
         callButton.interactable = false;
         restartButton.interactable = false;
         hangUpButton.interactable = false;
@@ -88,7 +90,9 @@ class PeerConnectionSample : MonoBehaviour
         pc2Ontrack = e =>
         {
             receiveStream.AddTrack(e.Track);
-            e.Receiver.Transform = new RTCRtpScriptTransform(TrackKind.Video, HandleReceiverTransformEvent);
+            pc2Receivers.Add(e.Receiver);
+            
+            e.Receiver.Transform = new RTCRtpScriptTransform(TrackKind.Video, HandleReceiverTransformEvent);;
         };
         pc1OnNegotiationNeeded = () => { StartCoroutine(PeerNegotiationNeeded(_pc1)); };
 
@@ -257,6 +261,7 @@ class PeerConnectionSample : MonoBehaviour
 
     private void HandleSenderTransformEvent(RTCTransformEvent ev)
     {
+        Debug.Log("HandleSenderTransformEvent");
         if (pc1ShouldEncodeFrameData)
         {
             if (!pc1SerializedDataToEncode.IsCreated)
@@ -272,7 +277,13 @@ class PeerConnectionSample : MonoBehaviour
                 pc1SerializedDataToEncode[i] = (byte)((pc1EncodedDataToSend >> (i * 8)) & 0xff);
             }
 
+            Debug.Log("SET FRAME DATA");
+
             videoFrame.SetData(pc1SerializedDataToEncode.AsReadOnly());
+        }
+        else
+        {
+            Debug.Log("DONT ENCODE FRAME DATA");
         }
     }
 
