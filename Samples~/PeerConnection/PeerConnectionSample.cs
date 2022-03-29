@@ -261,7 +261,6 @@ class PeerConnectionSample : MonoBehaviour
 
     private void HandleSenderTransformEvent(RTCTransformEvent ev)
     {
-        Debug.Log("HandleSenderTransformEvent");
         if (pc1ShouldEncodeFrameData)
         {
             if (!pc1SerializedDataToEncode.IsCreated)
