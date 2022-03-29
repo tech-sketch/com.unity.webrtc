@@ -10,6 +10,7 @@ namespace Unity.WebRTC
     public class RTCRtpSender : RefCountedObject
     {
         private RTCPeerConnection peer;
+        private RTCRtpTransform transform;
 
         internal RTCRtpSender(IntPtr ptr, RTCPeerConnection peer) : base(ptr)
         {
@@ -77,6 +78,7 @@ namespace Unity.WebRTC
         {
             set
             {
+                transform = value;
                 NativeMethods.SenderSetTransform(GetSelfOrThrow(), value.self);
             }
         }
