@@ -46,10 +46,10 @@ class PeerConnectionSample : MonoBehaviour
     private DelegateOnTrack pc2Ontrack;
     private DelegateOnNegotiationNeeded pc1OnNegotiationNeeded;
     private bool videoUpdateStarted;
-    private NativeArray<byte> pc1SerializedDataToEncode;
     private int pc1EncodedDataToSend = -1;
     private int pc2EncodedFrameDataReceived = -1;
     private bool pc1ShouldEncodeFrameData;
+    private NativeArray<byte> pc1ScratchBuffer;
 
     private const int width = 1280;
     private const int height = 720;
@@ -71,8 +71,8 @@ class PeerConnectionSample : MonoBehaviour
     {
         WebRTC.Dispose();
 
-        if (pc1SerializedDataToEncode.IsCreated)
-            pc1SerializedDataToEncode.Dispose();
+        if (pc1ScratchBuffer.IsCreated)
+            pc1ScratchBuffer.Dispose();
     }
 
     private void Start()
@@ -111,15 +111,17 @@ class PeerConnectionSample : MonoBehaviour
 
     private void HandleReceiverTransformEvent(RTCTransformEvent ev)
     {
-        var frame = (RTCEncodedVideoFrame)(ev.Frame);
-        var data = frame.GetData();
-        if (data.Length == 4)
+        if (pc1ShouldEncodeFrameData)
         {
-            // Convert NativeArray<byte> to int.
-            pc2EncodedFrameDataReceived = data[0];
+            var frame = (RTCEncodedVideoFrame)(ev.Frame);
+            var data = frame.GetData();
+
+            // The last 4 bytes contain the injected frame data.
+            var start = data.Length - 4;
+            pc2EncodedFrameDataReceived = data[start];
             for (var i = 1; i < 4; ++i)
             {
-                pc2EncodedFrameDataReceived += (data[i] << (i * 8));
+                pc2EncodedFrameDataReceived += (data[start + i] << (i * 8));
             }
         }
     }
@@ -263,20 +265,30 @@ class PeerConnectionSample : MonoBehaviour
     {
         if (pc1ShouldEncodeFrameData)
         {
-            if (!pc1SerializedDataToEncode.IsCreated)
-                pc1SerializedDataToEncode = new NativeArray<byte>(4, Allocator.Persistent);
-
             ++pc1EncodedDataToSend;
 
+            const int kExtraMemoryTToAllocate = 1024;
             var videoFrame = (RTCEncodedVideoFrame)(ev.Frame);
-
-            // Convert the int value into a byte array.
-            for (var i = 0; i < 4; ++i)
+            var videoFramePayload = videoFrame.GetData();
+            var finalPayloadSize = videoFramePayload.Length + 4;
+            if (!pc1ScratchBuffer.IsCreated || pc1ScratchBuffer.Length < finalPayloadSize)
             {
-                pc1SerializedDataToEncode[i] = (byte)((pc1EncodedDataToSend >> (i * 8)) & 0xff);
+                if (pc1ScratchBuffer.IsCreated)
+                {
+                    pc1ScratchBuffer.Dispose();
+                }
+                pc1ScratchBuffer = new NativeArray<byte>(finalPayloadSize + kExtraMemoryTToAllocate, Allocator.Persistent);
             }
 
-            videoFrame.SetData(pc1SerializedDataToEncode.AsReadOnly());
+            NativeArray<byte>.Copy(videoFramePayload, pc1ScratchBuffer, videoFramePayload.Length);
+
+            // Append the integer value to the end of the video payload
+            for (var i = 0; i < 4; ++i)
+            {
+                pc1ScratchBuffer[videoFramePayload.Length + i] = (byte)((pc1EncodedDataToSend >> (i * 8)) & 0xff);
+            }
+
+            videoFrame.SetData(pc1ScratchBuffer.GetSubArray(0, finalPayloadSize).AsReadOnly());
         }
     }
 
