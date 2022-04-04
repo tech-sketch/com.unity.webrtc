@@ -117,9 +117,9 @@ class PeerConnectionSample : MonoBehaviour
             var data = frame.GetData();
 
             // The last 4 bytes contain the injected frame data.
-            var start = data.Length - 4;
+            var start = data.Length - sizeof(int);
             pc2EncodedFrameDataReceived = data[start];
-            for (var i = 1; i < 4; ++i)
+            for (var i = 1; i < sizeof(int); ++i)
             {
                 pc2EncodedFrameDataReceived += (data[start + i] << (i * 8));
             }
