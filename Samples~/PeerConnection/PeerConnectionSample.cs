@@ -267,23 +267,23 @@ class PeerConnectionSample : MonoBehaviour
         {
             ++pc1EncodedDataToSend;
 
-            const int kExtraMemoryTToAllocate = 1024;
+            const int kExtraMemoryToAllocate = 1024;
             var videoFrame = (RTCEncodedVideoFrame)(ev.Frame);
             var videoFramePayload = videoFrame.GetData();
-            var finalPayloadSize = videoFramePayload.Length + 4;
+            var finalPayloadSize = videoFramePayload.Length + sizeof(int);
             if (!pc1ScratchBuffer.IsCreated || pc1ScratchBuffer.Length < finalPayloadSize)
             {
                 if (pc1ScratchBuffer.IsCreated)
                 {
                     pc1ScratchBuffer.Dispose();
                 }
-                pc1ScratchBuffer = new NativeArray<byte>(finalPayloadSize + kExtraMemoryTToAllocate, Allocator.Persistent);
+                pc1ScratchBuffer = new NativeArray<byte>(finalPayloadSize + kExtraMemoryToAllocate, Allocator.Persistent);
             }
 
             NativeArray<byte>.Copy(videoFramePayload, pc1ScratchBuffer, videoFramePayload.Length);
 
             // Append the integer value to the end of the video payload
-            for (var i = 0; i < 4; ++i)
+            for (var i = 0; i < sizeof(int); ++i)
             {
                 pc1ScratchBuffer[videoFramePayload.Length + i] = (byte)((pc1EncodedDataToSend >> (i * 8)) & 0xff);
             }
