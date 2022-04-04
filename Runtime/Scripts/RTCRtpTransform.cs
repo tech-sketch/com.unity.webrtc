@@ -83,7 +83,7 @@ namespace Unity.WebRTC
             unsafe
             {
                 var arr = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<byte>(
-                    data.ToPointer(), size, Allocator.Invalid);
+                    data.ToPointer(), size, Allocator.None);
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
                 NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref arr, AtomicSafetyHandle.Create());
 #endif
