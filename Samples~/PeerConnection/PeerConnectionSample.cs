@@ -1,5 +1,8 @@
+#define USE_METADATA_FRAMEID
+
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using Unity.Collections;
 using UnityEngine;
@@ -46,8 +49,8 @@ class PeerConnectionSample : MonoBehaviour
     private DelegateOnTrack pc2Ontrack;
     private DelegateOnNegotiationNeeded pc1OnNegotiationNeeded;
     private bool videoUpdateStarted;
-    private int pc1EncodedDataToSend = -1;
-    private int pc2EncodedFrameDataReceived = -1;
+    private long pc1EncodedDataToSend = -1;
+    private long pc2EncodedFrameDataReceived = -1;
     private bool pc1ShouldEncodeFrameData;
     private NativeArray<byte> pc1ScratchBuffer;
 
@@ -56,6 +59,7 @@ class PeerConnectionSample : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log($"WebRTCSettings.EncoderType = {WebRTCSettings.EncoderType}");
         WebRTC.Initialize(WebRTCSettings.EncoderType, WebRTCSettings.LimitTextureSize);
         startButton.onClick.AddListener(OnStart);
         callButton.onClick.AddListener(Call);
@@ -111,6 +115,14 @@ class PeerConnectionSample : MonoBehaviour
 
     private void HandleReceiverTransformEvent(RTCTransformEvent ev)
     {
+#if USE_METADATA_FRAMEID
+        var frame = (RTCEncodedVideoFrame)(ev.Frame);
+        var metadata = frame.GetMetadata();
+        if (!metadata.frameId.HasValue)
+            throw new DataException("Frame ID doesnt have a value");
+
+        pc2EncodedFrameDataReceived = metadata.frameId.Value;
+#else
         if (pc1ShouldEncodeFrameData)
         {
             var frame = (RTCEncodedVideoFrame)(ev.Frame);
@@ -124,6 +136,7 @@ class PeerConnectionSample : MonoBehaviour
                 pc2EncodedFrameDataReceived += (data[start + i] << (i * 8));
             }
         }
+#endif
     }
 
     private void OnStart()
@@ -263,6 +276,14 @@ class PeerConnectionSample : MonoBehaviour
 
     private void HandleSenderTransformEvent(RTCTransformEvent ev)
     {
+#if USE_METADATA_FRAMEID
+        var videoFrame = (RTCEncodedVideoFrame)(ev.Frame);
+        var videoFrameMetadata = videoFrame.GetMetadata();
+        if (!videoFrameMetadata.frameId.HasValue)
+            throw new DataException("Frame ID doesnt have a value");
+
+        pc1EncodedDataToSend = videoFrameMetadata.frameId.Value;
+#else
         if (pc1ShouldEncodeFrameData)
         {
             ++pc1EncodedDataToSend;
@@ -290,6 +311,7 @@ class PeerConnectionSample : MonoBehaviour
 
             videoFrame.SetData(pc1ScratchBuffer.GetSubArray(0, finalPayloadSize).AsReadOnly());
         }
+#endif
     }
 
     private void OnShouldEncodeFrameDataToggled(bool isOn)
