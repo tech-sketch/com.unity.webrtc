@@ -1,5 +1,6 @@
 #define USE_METADATA_FRAMEID
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -140,6 +141,40 @@ class PeerConnectionSample : MonoBehaviour
             }
         }
 #endif
+    }
+
+    string EnableGFD(string sdp)
+    {
+        const string GFD_V00_EXTENSION = "http://www.webrtc.org/experiments/rtp-hdrext/generic-frame-descriptor-00";
+        if (sdp.IndexOf(GFD_V00_EXTENSION, StringComparison.Ordinal) != -1)
+            return sdp;
+
+        var lines = sdp.Trim().Split('\n');
+        List<Int32> extensionIds = new List<Int32>();
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("a=extmap:"))
+            {
+                var idString = trimmed.Split(' ')[0].Substring(9);
+                var id = Int32.Parse(idString);
+                extensionIds.Add(id);
+            }
+        }
+        extensionIds.Sort();
+        for (var newId = 1; newId <= 14; newId++) {
+            if (!extensionIds.Contains(newId)) {
+                sdp += "a=extmap:" + newId + " " + GFD_V00_EXTENSION + "\r\n";
+                return sdp;
+            }
+        }
+        if (sdp.IndexOf("a=extmap-allow-mixed", StringComparison.Ordinal) != -1)
+        {
+            var newId = extensionIds[extensionIds.Count - 1] + 1;
+            sdp += "a=extmap:" + newId + " " + GFD_V00_EXTENSION + "\r\n";
+            return sdp;
+        }
+        throw new InvalidOperationException("Could not find free extension id to use for " + GFD_V00_EXTENSION);
     }
 
     private void OnStart()
@@ -416,6 +451,8 @@ class PeerConnectionSample : MonoBehaviour
 
     private IEnumerator OnCreateOfferSuccess(RTCPeerConnection pc, RTCSessionDescription desc)
     {
+        desc.sdp = EnableGFD(desc.sdp);
+
         Debug.Log($"Offer from {GetName(pc)}\n{desc.sdp}");
         Debug.Log($"{GetName(pc)} setLocalDescription start");
         var op = pc.SetLocalDescription(ref desc);
@@ -482,6 +519,8 @@ class PeerConnectionSample : MonoBehaviour
 
     IEnumerator OnCreateAnswerSuccess(RTCPeerConnection pc, RTCSessionDescription desc)
     {
+        desc.sdp = EnableGFD(desc.sdp);
+
         Debug.Log($"Answer from {GetName(pc)}:\n{desc.sdp}");
         Debug.Log($"{GetName(pc)} setLocalDescription start");
         var op = pc.SetLocalDescription(ref desc);
