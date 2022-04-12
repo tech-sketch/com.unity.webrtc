@@ -119,9 +119,12 @@ class PeerConnectionSample : MonoBehaviour
         var frame = (RTCEncodedVideoFrame)(ev.Frame);
         var metadata = frame.GetMetadata();
         if (!metadata.frameId.HasValue)
-            throw new DataException("Frame ID doesnt have a value");
-
-        pc2EncodedFrameDataReceived = metadata.frameId.Value;
+            Debug.Log($"Receiving No frame Frameid");
+        else
+        {
+            Debug.Log($"Receiving frame {metadata.frameId.Value}");
+            pc2EncodedFrameDataReceived = metadata.frameId.Value;
+        }
 #else
         if (pc1ShouldEncodeFrameData)
         {
@@ -282,6 +285,7 @@ class PeerConnectionSample : MonoBehaviour
         if (!videoFrameMetadata.frameId.HasValue)
             throw new DataException("Frame ID doesnt have a value");
 
+        Debug.Log($"Sending frame {videoFrameMetadata.frameId.Value}");
         pc1EncodedDataToSend = videoFrameMetadata.frameId.Value;
 #else
         if (pc1ShouldEncodeFrameData)
