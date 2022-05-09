@@ -1,5 +1,10 @@
 #include "pch.h"
 
+#include <tuple>
+
+#include "api/video_codecs/builtin_video_encoder_factory.h"
+
+#include "GraphicsDevice/GraphicsUtility.h"
 #include "UnityVideoEncoderFactory.h"
 
 #if CUDA_PLATFORM
@@ -7,14 +12,12 @@
 #include <cuda.h>
 #endif
 
-#include "GraphicsDevice/GraphicsUtility.h"
-
 #if UNITY_OSX || UNITY_IOS
 #import "sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.h"
 #import "sdk/objc/native/api/video_encoder_factory.h"
 #elif UNITY_ANDROID
-#include "Android/Jni.h"
 #include "Android/AndroidCodecFactoryHelper.h"
+#include "Android/Jni.h"
 #endif
 
 namespace unity
@@ -22,29 +25,53 @@ namespace unity
 namespace webrtc
 {
     using namespace ::webrtc::H264;
+    typedef std::tuple<std::string, webrtc::VideoEncoderFactory*> VideoEncoderFactoryPair;
 
-    webrtc::VideoEncoderFactory* CreateNativeEncoderFactory(IGraphicsDevice* gfxDevice)
+    VideoEncoderFactoryPair CreateNativeEncoderFactory(IGraphicsDevice* gfxDevice)
     {
 #if UNITY_OSX || UNITY_IOS
-        return webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
+        webrtc::VideoEncoderFactory* factory =
+            webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
+        return std::make_tuple(std::string("google"), factory);
 #elif UNITY_ANDROID
         if (IsVMInitialized())
-            return CreateAndroidEncoderFactory().release();
+        {
+            webrtc::VideoEncoderFactory* factory = CreateAndroidEncoderFactory().release();
+            return std::make_tuple(std::string("apple"), factory);
+        }
 #elif CUDA_PLATFORM
-        if(gfxDevice->IsCudaSupport())
+        if (gfxDevice->IsCudaSupport())
         {
             CUcontext context = gfxDevice->GetCUcontext();
             NV_ENC_BUFFER_FORMAT format = gfxDevice->GetEncodeBufferFormat();
-            return new NvEncoderFactory(context, format);
+            webrtc::VideoEncoderFactory* factory = new NvEncoderFactory(context, format);
+            return std::make_tuple(std::string("nvidia"), factory);
         }
 #endif
-        return nullptr;
+        return std::make_tuple<std::string, webrtc::VideoEncoderFactory*>(nullptr, nullptr);
+    }
+
+    VideoEncoderFactory* FindFactory(const VideoEncoderFactoryMap& factories, const webrtc::SdpVideoFormat& format)
+    {
+        auto it = format.parameters.find("vendor");
+        std::string vendor = it == format.parameters.end() ? nullptr : it->second;
+
+        auto it2 = factories.find(vendor);
+        return it2->second.get();
     }
 
     UnityVideoEncoderFactory::UnityVideoEncoderFactory(IGraphicsDevice* gfxDevice)
-        : internal_encoder_factory_(new webrtc::InternalEncoderFactory())
-        , native_encoder_factory_(CreateNativeEncoderFactory(gfxDevice))
     {
+
+        factories_.emplace(nullptr, new webrtc::InternalEncoderFactory());
+
+        VideoEncoderFactoryPair pair = CreateNativeEncoderFactory(gfxDevice);
+        std::string vendor = std::get<0>(pair);
+        if (!vendor.empty())
+        {
+            VideoEncoderFactory* factory = std::get<1>(pair);
+            factories_.emplace(vendor, factory);
+        }
     }
 
     UnityVideoEncoderFactory::~UnityVideoEncoderFactory() = default;
@@ -53,12 +80,15 @@ namespace webrtc
     {
         std::vector<SdpVideoFormat> supported_codecs;
 
-        for (const webrtc::SdpVideoFormat& format : internal_encoder_factory_->GetSupportedFormats())
-            supported_codecs.push_back(format);
-        if (native_encoder_factory_)
+        for (const auto& pair : factories_)
         {
-            for (const webrtc::SdpVideoFormat& format : native_encoder_factory_->GetSupportedFormats())
-                supported_codecs.push_back(format);
+            for (const webrtc::SdpVideoFormat& format : pair.second->GetSupportedFormats())
+            {
+                webrtc::SdpVideoFormat newFormat = format;
+                if (!pair.first.empty())
+                    newFormat.parameters.emplace("vendor", pair.first);
+                supported_codecs.push_back(newFormat);
+            }
         }
 
         // Set video codec order: default video codec is VP8
@@ -80,22 +110,16 @@ namespace webrtc
     webrtc::VideoEncoderFactory::CodecInfo
     UnityVideoEncoderFactory::QueryVideoEncoder(const webrtc::SdpVideoFormat& format) const
     {
-        if (native_encoder_factory_ && format.IsCodecInList(native_encoder_factory_->GetSupportedFormats()))
-        {
-            return native_encoder_factory_->QueryVideoEncoder(format);
-        }
-        RTC_DCHECK(format.IsCodecInList(internal_encoder_factory_->GetSupportedFormats()));
-        return internal_encoder_factory_->QueryVideoEncoder(format);
+        VideoEncoderFactory* factory = FindFactory(factories_, format);
+        RTC_DCHECK(format.IsCodecInList(factory->GetSupportedFormats()));
+        return factory->QueryVideoEncoder(format);
     }
 
     std::unique_ptr<webrtc::VideoEncoder>
     UnityVideoEncoderFactory::CreateVideoEncoder(const webrtc::SdpVideoFormat& format)
     {
-        if (native_encoder_factory_ && format.IsCodecInList(native_encoder_factory_->GetSupportedFormats()))
-        {
-            return native_encoder_factory_->CreateVideoEncoder(format);
-        }
-        return internal_encoder_factory_->CreateVideoEncoder(format);
+        VideoEncoderFactory* factory = FindFactory(factories_, format);
+        return factory->CreateVideoEncoder(format);
     }
 }
 }

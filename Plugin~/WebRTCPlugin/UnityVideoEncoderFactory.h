@@ -1,16 +1,24 @@
 #pragma once
 
+#include <map>
+#include <string>
+#include <memory>
+
+#include "api/video_codecs/video_encoder_factory.h"
+
 namespace unity
 {
 namespace webrtc
 {
-    class IGraphicsDevice;
     using namespace ::webrtc;
 
+    typedef std::map<std::string, std::unique_ptr<VideoEncoderFactory>> VideoEncoderFactoryMap;
+
+    class IGraphicsDevice;
     class UnityVideoEncoderFactory : public VideoEncoderFactory
     {
     public:
-        //VideoEncoderFactory
+        // VideoEncoderFactory
         // Returns a list of supported video formats in order of preference, to use
         // for signaling etc.
         virtual std::vector<SdpVideoFormat> GetSupportedFormats() const override;
@@ -21,10 +29,10 @@ namespace webrtc
         virtual std::unique_ptr<VideoEncoder> CreateVideoEncoder(const SdpVideoFormat& format) override;
 
         UnityVideoEncoderFactory(IGraphicsDevice* gfxDevice);
-        ~UnityVideoEncoderFactory();
+        ~UnityVideoEncoderFactory() override;
+
     private:
-        const std::unique_ptr<VideoEncoderFactory> internal_encoder_factory_;
-        const std::unique_ptr<VideoEncoderFactory> native_encoder_factory_;
+        VideoEncoderFactoryMap factories_;
     };
 }
 }
