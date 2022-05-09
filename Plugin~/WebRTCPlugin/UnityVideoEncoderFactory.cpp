@@ -27,35 +27,48 @@ namespace webrtc
     using namespace ::webrtc::H264;
     typedef std::tuple<std::string, webrtc::VideoEncoderFactory*> VideoEncoderFactoryPair;
 
-    const char kInternalCodecVendorName[] = "internal";
-    const char kNvidiaCodecVendorName[] = "nvidia";
+    const char kAMDCodecVendorName[] = "amd";
     const char kAppleCodecVendorName[] = "apple";
     const char kGoogleCodecVendorName[] = "google";
     const char kIntelCodecVendorName[] = "intel";
+    const char kInternalCodecVendorName[] = "internal";
     const char kMicrosoftCodecVendorName[] = "microsoft";
+    const char kNvidiaCodecVendorName[] = "nvidia";
 
-    VideoEncoderFactoryPair CreateNativeEncoderFactory(IGraphicsDevice* gfxDevice)
+    webrtc::VideoEncoderFactory* CreateNativeEncoderFactory(const std::string& vendor, IGraphicsDevice* gfxDevice)
     {
+        if (vendor == kAppleCodecVendorName)
+        {
 #if UNITY_OSX || UNITY_IOS
-        webrtc::VideoEncoderFactory* factory =
-            webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
-        return std::make_tuple(std::string(kGoogleCodecVendorName), factory);
-#elif UNITY_ANDROID
-        if (IsVMInitialized())
-        {
-            webrtc::VideoEncoderFactory* factory = CreateAndroidEncoderFactory().release();
-            return std::make_tuple(std::string(kAppleCodecVendorName), factory);
-        }
-#elif CUDA_PLATFORM
-        if (gfxDevice->IsCudaSupport())
-        {
-            CUcontext context = gfxDevice->GetCUcontext();
-            NV_ENC_BUFFER_FORMAT format = gfxDevice->GetEncodeBufferFormat();
-            webrtc::VideoEncoderFactory* factory = new NvEncoderFactory(context, format);
-            return std::make_tuple(std::string(kNvidiaCodecVendorName), factory);
-        }
+            return webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
 #endif
-        return std::make_tuple<std::string, webrtc::VideoEncoderFactory*>(nullptr, nullptr);
+        }
+        else if (vendor == kGoogleCodecVendorName)
+        {
+#if UNITY_ANDROID
+            if (IsVMInitialized())
+            {
+                return CreateAndroidEncoderFactory().release();
+            }
+#endif
+        }
+        else if (vendor == kNvidiaCodecVendorName)
+        {
+#if CUDA_PLATFORM
+            if (gfxDevice->IsCudaSupport())
+            {
+                CUcontext context = gfxDevice->GetCUcontext();
+                NV_ENC_BUFFER_FORMAT format = gfxDevice->GetEncodeBufferFormat();
+                return new NvEncoderFactory(context, format);
+            }
+#endif
+        }
+        else if (
+            vendor == kAMDCodecVendorName || vendor == kIntelCodecVendorName || vendor == kMicrosoftCodecVendorName)
+        {
+            // not implemented yet.
+        }
+        return nullptr;
     }
 
     VideoEncoderFactory* FindFactory(const VideoEncoderFactoryMap& factories, const webrtc::SdpVideoFormat& format)
@@ -69,15 +82,20 @@ namespace webrtc
 
     UnityVideoEncoderFactory::UnityVideoEncoderFactory(IGraphicsDevice* gfxDevice)
     {
-
         factories_.emplace(kInternalCodecVendorName, new webrtc::InternalEncoderFactory());
 
-        VideoEncoderFactoryPair pair = CreateNativeEncoderFactory(gfxDevice);
-        std::string vendor = std::get<0>(pair);
-        if (!vendor.empty())
+        std::vector<std::string> vendors = {
+            kNvidiaCodecVendorName,    kAppleCodecVendorName, kIntelCodecVendorName,
+            kMicrosoftCodecVendorName, kIntelCodecVendorName, kMicrosoftCodecVendorName,
+        };
+
+        for (auto vendor : vendors)
         {
-            VideoEncoderFactory* factory = std::get<1>(pair);
-            factories_.emplace(vendor, factory);
+            auto factory = CreateNativeEncoderFactory(vendor, gfxDevice);
+            if (factory)
+            {
+                factories_.emplace(vendor, factory);
+            }
         }
     }
 
