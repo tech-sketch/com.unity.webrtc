@@ -27,17 +27,24 @@ namespace webrtc
     using namespace ::webrtc::H264;
     typedef std::tuple<std::string, webrtc::VideoEncoderFactory*> VideoEncoderFactoryPair;
 
+    const char kInternalCodecVendorName[] = "internal";
+    const char kNvidiaCodecVendorName[] = "nvidia";
+    const char kAppleCodecVendorName[] = "apple";
+    const char kGoogleCodecVendorName[] = "google";
+    const char kIntelCodecVendorName[] = "intel";
+    const char kMicrosoftCodecVendorName[] = "microsoft";
+
     VideoEncoderFactoryPair CreateNativeEncoderFactory(IGraphicsDevice* gfxDevice)
     {
 #if UNITY_OSX || UNITY_IOS
         webrtc::VideoEncoderFactory* factory =
             webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
-        return std::make_tuple(std::string("google"), factory);
+        return std::make_tuple(std::string(kGoogleCodecVendorName), factory);
 #elif UNITY_ANDROID
         if (IsVMInitialized())
         {
             webrtc::VideoEncoderFactory* factory = CreateAndroidEncoderFactory().release();
-            return std::make_tuple(std::string("apple"), factory);
+            return std::make_tuple(std::string(kAppleCodecVendorName), factory);
         }
 #elif CUDA_PLATFORM
         if (gfxDevice->IsCudaSupport())
@@ -45,7 +52,7 @@ namespace webrtc
             CUcontext context = gfxDevice->GetCUcontext();
             NV_ENC_BUFFER_FORMAT format = gfxDevice->GetEncodeBufferFormat();
             webrtc::VideoEncoderFactory* factory = new NvEncoderFactory(context, format);
-            return std::make_tuple(std::string("nvidia"), factory);
+            return std::make_tuple(std::string(kNvidiaCodecVendorName), factory);
         }
 #endif
         return std::make_tuple<std::string, webrtc::VideoEncoderFactory*>(nullptr, nullptr);
@@ -63,7 +70,7 @@ namespace webrtc
     UnityVideoEncoderFactory::UnityVideoEncoderFactory(IGraphicsDevice* gfxDevice)
     {
 
-        factories_.emplace(nullptr, new webrtc::InternalEncoderFactory());
+        factories_.emplace(kInternalCodecVendorName, new webrtc::InternalEncoderFactory());
 
         VideoEncoderFactoryPair pair = CreateNativeEncoderFactory(gfxDevice);
         std::string vendor = std::get<0>(pair);
