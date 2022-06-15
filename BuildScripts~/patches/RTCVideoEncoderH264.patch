@@ -1,11 +1,6 @@
---- RTCVideoEncoderH264.mm	2022-05-18 12:23:28.005027100 +0900
-+++ RTCVideoEncoderH264.mm.patch	2022-06-15 15:56:39.947783400 +0900
-@@ -173,103 +173,17 @@
- // no specific VideoToolbox profile for the specified level, AutoLevel will be
- // returned. The user must initialize the encoder with a resolution and
- // framerate conforming to the selected H264 level regardless.
--CFStringRef ExtractProfile(const webrtc::H264ProfileLevelId &profile_level_id) {
-+CFStringRef ExtractProfile(const webrtc::H264ProfileLevelId& profile_level_id) {
+--- RTCVideoEncoderH264.mm	2022-06-16 08:37:38.877396400 +0900
++++ RTCVideoEncoderH264.mm.patch	2022-06-16 08:38:35.017317600 +0900
+@@ -177,99 +177,13 @@
    switch (profile_level_id.profile) {
      case webrtc::H264Profile::kProfileConstrainedBaseline:
      case webrtc::H264Profile::kProfileBaseline:
