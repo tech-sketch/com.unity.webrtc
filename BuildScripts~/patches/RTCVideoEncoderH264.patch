@@ -1,6 +1,6 @@
---- RTCVideoEncoderH264.mm	2022-06-16 08:37:38.877396400 +0900
-+++ RTCVideoEncoderH264.mm.patch	2022-06-16 08:38:35.017317600 +0900
-@@ -177,99 +177,13 @@
+--- RTCVideoEncoderH264.mm	2022-06-16 08:44:36.000000000 +0900
++++ RTCVideoEncoderH264.mm.patch	2022-06-16 08:56:42.000000000 +0900
+@@ -177,98 +177,12 @@
    switch (profile_level_id.profile) {
      case webrtc::H264Profile::kProfileConstrainedBaseline:
      case webrtc::H264Profile::kProfileBaseline:
@@ -69,7 +69,6 @@
 +      return kVTProfileLevel_H264_Main_AutoLevel;
      case webrtc::H264Profile::kProfileConstrainedHigh:
      case webrtc::H264Profile::kProfileHigh:
-     case webrtc::H264Profile::kProfilePredictiveHigh444:
 -      switch (profile_level_id.level) {
 -        case webrtc::H264Level::kLevel3:
 -          return kVTProfileLevel_H264_High_3_0;
@@ -103,7 +102,7 @@
    }
  }
  
-@@ -394,6 +308,7 @@
+@@ -393,6 +307,7 @@
      return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
    }
    BOOL isKeyframeRequired = NO;
