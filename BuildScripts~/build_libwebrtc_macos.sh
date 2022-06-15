@@ -41,9 +41,10 @@ for is_debug in "true" "false"
 do
   for target_cpu in "x64" "arm64"
   do
+    outdir="${OUTPUT_DIR}_${target_cpu}_${is_debug}"
 
     # generate ninja files
-    gn gen "$OUTPUT_DIR" --root="src" \
+    gn gen "${outdir}" --root="src" \
       --args="is_debug=${is_debug} \
       target_os=\"mac\"  \
       target_cpu=\"${target_cpu}\" \
@@ -58,11 +59,11 @@ do
       libcxx_abi_unstable=false"
 
     # build static library
-    ninja -C "$OUTPUT_DIR" webrtc
+    ninja -C "${outdir}" webrtc
 
     # copy static library
     mkdir -p "$ARTIFACTS_DIR/lib/${target_cpu}"
-    cp "$OUTPUT_DIR/obj/libwebrtc.a" "$ARTIFACTS_DIR/lib/${target_cpu}/"
+    cp "${outdir}/obj/libwebrtc.a" "$ARTIFACTS_DIR/lib/${target_cpu}/"
   done
 
   filename="libwebrtc.a"
