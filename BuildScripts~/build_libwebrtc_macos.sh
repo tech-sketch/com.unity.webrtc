@@ -33,7 +33,7 @@ patch -N "src/sdk/BUILD.gn" < "$COMMAND_DIR/patches/add_objc_deps.patch"
 patch -N "src/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm" < "$COMMAND_DIR/patches/avoid_crashusingvideoencoderh264.patch"
 
 # force use autolevel profile for fix to failed encoder higher than HD resolution
-patch -N "src/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm" < "$COMMAND_DIR/force_use_autolevelprofile_videoencoderh264.patch"
+patch -N "src/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm" < "$COMMAND_DIR/patches/force_use_autolevelprofile_videoencoderh264.patch"
 
 mkdir -p "$ARTIFACTS_DIR/lib"
 
