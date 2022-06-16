@@ -28,6 +28,11 @@ patch -N "src/BUILD.gn" < "$COMMAND_DIR/patches/add_jsoncpp.patch"
 # add objc library to use videotoolbox
 patch -N "src/sdk/BUILD.gn" < "$COMMAND_DIR/patches/add_objc_deps.patch"
 
+# avoid crashes when using Full HD resolution with HWA enabled
+# workaround referred from this discussion: https://groups.google.com/g/discuss-webrtc/c/AVeyMXnM0gY
+# and force use autolevel profile for fix to failed encoder higher than HD resolution
+patch -N "src/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm" < "$COMMAND_DIR/patches/RTCVideoEncoderH264.patch"
+
 # use included python
 export PATH="$(pwd)/depot_tools/bootstrap-3.8.0.chromium.8_bin/python/bin:$PATH"
 

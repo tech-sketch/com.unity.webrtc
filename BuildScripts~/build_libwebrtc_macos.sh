@@ -33,6 +33,9 @@ patch -N "src/sdk/BUILD.gn" < "$COMMAND_DIR/patches/add_objc_deps.patch"
 # and force use autolevel profile for fix to failed encoder higher than HD resolution
 patch -N "src/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm" < "$COMMAND_DIR/patches/RTCVideoEncoderH264.patch"
 
+# use included python
+export PATH="$(pwd)/depot_tools/bootstrap-3.8.0.chromium.8_bin/python/bin:$PATH"
+
 mkdir -p "$ARTIFACTS_DIR/lib"
 
 for is_debug in "true" "false"
