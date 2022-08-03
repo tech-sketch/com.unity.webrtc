@@ -3,5 +3,5 @@
 [assembly: InternalsVisibleTo("Unity.WebRTC.RuntimeTests")]
 [assembly: InternalsVisibleTo("Unity.WebRTC.EditorTests")]
 
-// [Note: 2022/06/15] Allow external libraries to access internal members.
-[assembly: InternalsVisibleTo("Unity.WebRTC.UtilityToolkit")]
+// [Note: 2022/08/03] Allow external libraries to access internal members.
+[assembly: InternalsVisibleTo("XRCometViewer")]
